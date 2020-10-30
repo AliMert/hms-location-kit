@@ -1,11 +1,12 @@
 package com.ozhayta.hms_locationkit
 
+import android.app.AlertDialog
 import android.location.Location
 import android.os.Bundle
 import android.util.Log
+import android.widget.EditText
 import androidx.appcompat.app.AppCompatActivity
 import kotlinx.android.synthetic.main.activity_main.*
-import java.lang.Exception
 
 
 class MainActivity : AppCompatActivity() {
@@ -15,36 +16,49 @@ class MainActivity : AppCompatActivity() {
         var DESTINATION_LATITUDE =  37.003312
         var DESTINATION_LONGITUDE = 35.323345
 
+        // huawei istanbul
+        // var DESTINATION_LATITUDE =  41.028720
+        // var DESTINATION_LONGITUDE = 29.117530
+
     // var DESTINATION_LATITUDE =  36.995962
     // var DESTINATION_LONGITUDE = 35.324905
     }
 
-    private var locationServices: HMSLocationServices?=null
+    private var locationService: HMSLocationService?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        locationServices = HMSLocationServices(this, false)
+        locationService = HMSLocationService(this)
 
-        locationServices?.setLocationCallback {
+        locationService?.setLocationCallback {
             it?.let { location -> locationReceived(location) }
                 ?: Log.i(TAG, "location returned null")
-        }
-
-        // request location
-        get_location_btn.setOnClickListener {
-            locationServices?.requestLocationUpdatesWithCallback()
-            val message  = "getting location...."
-            log.text = message
-            latitude.text = message
-            longitude.text = message
-            accuracy.text = message
         }
 
 
         et_latitude.setText(DESTINATION_LATITUDE.toString())
         et_longitude.setText(DESTINATION_LONGITUDE.toString())
+
+
+        // request location
+        get_location_btn.setOnClickListener {
+            calculateDistanceButtonIsClicked()
+        }
+
+        set_mock_location_btn.setOnClickListener {
+            alertDialogSetMockLocation()
+        }
+    }
+
+    private fun calculateDistanceButtonIsClicked() {
+        locationService?.requestLocationUpdatesWithCallback()
+        val message  = "getting location...."
+        log.text = message
+        latitude.text = message
+        longitude.text = message
+        accuracy.text = message
     }
 
     private fun calculateDistance(location: Location){
@@ -92,12 +106,58 @@ class MainActivity : AppCompatActivity() {
          calculateDistance(location)
     }
 
+    private fun alertDialogSetMockLocation() {
+        val dialogLayout = layoutInflater.inflate(R.layout.dialog_layout, null)
+        val latitudeEditText = dialogLayout.findViewById<EditText>(R.id.latitude_editText)
+        val longitudeEditText = dialogLayout.findViewById<EditText>(R.id.longitude_editText)
 
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Please enter a mock location:")
+            .setPositiveButton("ok", null)
+            .setNegativeButton("disable Mock location") { dialog, which ->
+                locationService?.setMockMode(false)
+                calculateDistanceButtonIsClicked()
+            }
+            .setView(dialogLayout)
+            .show()
+
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setTextColor(resources.getColor(R.color.red, this.theme))
+        val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+        positiveButton.setOnClickListener {
+            val lat = latitudeEditText.text.toString().toDoubleOrNull()
+            val lon = longitudeEditText.text.toString().toDoubleOrNull()
+
+            if (latitudeEditText.text.isEmpty() || lat == null ) {
+                latitudeEditText.error = "please enter correct lat"
+                latitudeEditText.requestFocus()
+                locationService?.setMockMode(false)
+                calculateDistanceButtonIsClicked()
+                return@setOnClickListener
+            }
+            if (longitudeEditText.text.isEmpty() || lon == null) {
+                longitudeEditText.error = "please enter correct lon"
+                longitudeEditText.requestFocus()
+                locationService?.setMockMode(false)
+                calculateDistanceButtonIsClicked()
+                return@setOnClickListener
+            }
+
+            val mockLocation = Location("mockLocation")
+            mockLocation.latitude = lat
+            mockLocation.longitude = lon
+
+            locationService?.setMockMode(true)
+            locationService?.setMockLocation(mockLocation)
+
+            calculateDistanceButtonIsClicked()
+            dialog.dismiss()
+        }
+    }
 
 
     override fun onDestroy() {
         // don't need to receive callback
-       locationServices?.removeLocationUpdatesWithCallback()
+       locationService?.removeLocationUpdatesWithCallback()
         super.onDestroy()
     }
 
@@ -108,8 +168,7 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        locationServices?.onRequestPermissionsResult(requestCode, permissions, grantResults)
-
+        locationService?.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
 }

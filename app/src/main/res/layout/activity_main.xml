@@ -144,5 +144,16 @@
         android:layout_gravity="center"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        tools:text="sdf"
         android:id="@+id/log" />
+
+    <Button
+        android:layout_margin="30dp"
+        android:padding="10dp"
+        android:layout_gravity="center"
+        android:id="@+id/set_mock_location_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="set mock location"
+        />
 </LinearLayout>
